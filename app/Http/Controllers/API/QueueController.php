@@ -4,8 +4,11 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Carbon;
 use App\Models\Queue;
+use App\Models\Departement;
+use App\Models\User;
 
 
 class QueueController extends Controller
@@ -18,33 +21,64 @@ class QueueController extends Controller
     */
    public function AppelTraites()
    { 
-       $today = Carbon::today();
-      
+
+
+
+       
+       $user = Auth::user();
+       if (!$user) {
+        return response()->json(['error' => 'User not authenticated'], 401);
+    }
+    
+        $today = Carbon::today();
+       $departmentId = $user->department_id;
       // $count = Queue::where('called', 0)->count();
-      $coun = Queue::whereDate('created_at', $today)->where('called', 1)->count();
+      $count = Queue::where('department_id', $departmentId)
+                      ->whereDate('created_at', $today)
+                      ->where('called', 1)->count();
    
        // Retourner le nombre de files d'attente au format JSON
-       return response()->json(['count' => $coun]);
+       return response()->json(['count' => $count-1]);
    }
+
     public function AppelNONTraites()
 {
    
-      
+    $user = Auth::user();
+    if (!$user) {
+     return response()->json(['error' => 'User not authenticated'], 401);
+ }
        $today = Carbon::now();
-     //  \Log::info('Today: ' . $today->toDateString());
-
-   $count = Queue::whereDate('created_at', $today)->where('called', 0)->count();
+       $departmentId = $user->department_id;
+       // $count = Queue::where('called', 0)->count();
+       $count = Queue::where('department_id', $departmentId)
+       ->whereDate('created_at', $today)->where('called', 0)->count();
   // \Log::info('Queues: ' . $queues->count());
  
    return response()->json(['count' => $count]);
 }
+public function numeroActuelle()
+{ 
+    $today = Carbon::today();
+   
+   // $count = Queue::where('called', 0)->count();
+   $count = Queue::whereDate('created_at', $today)->where('called', 1)->count();
+
+    // Retourner le nombre de files d'attente au format JSON
+    return response()->json(['count' => $count]);
+}
 public function traiterQueue()
 {    
+    $user = Auth::user();
+    if (!$user) {
+     return response()->json(['error' => 'User not authenticated'], 401);
+ }
     // Retrieve the current date
     $currentDate = Carbon::now()->toDateString();
-
+    $departmentId = $user->department_id;
     // Retrieve the oldest unprocessed queue item created today
-    $queueItem = Queue::whereDate('created_at', $currentDate)
+    $queueItem = Queue::where('department_id', $departmentId)
+                        ->whereDate('created_at', $currentDate)
                        ->where('called', 0)
                        ->orderBy('created_at', 'asc')
                        ->first();

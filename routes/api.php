@@ -19,8 +19,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user/department-letter', [UserController::class, 'getUserDepartmentLetter']);
 
     // Routes pour obtenir et mettre à jour l'utilisateur authentifié
-    Route::get('/user', [UserController::class, 'getAuthenticatedUser']);
-    Route::put('/user', [UserController::class, 'updateAuthenticatedUser']);
+    Route::prefix('user')->group(function () {
+    Route::get('/', [UserController::class, 'getAuthenticatedUser']);
+    Route::put('/update/{id}', [UserController::class, 'updateAuthenticatedUser']);
+});
 });
 
 // Routes pour CallController
@@ -34,15 +36,17 @@ Route::prefix('calls')->group(function () {
 });
 
 // Routes pour QueueController
+Route::middleware('auth:sanctum')->group(function () {
 Route::prefix('queues')->group(function () {
     Route::get('/traite', [QueueController::class, 'AppelTraites']);
     Route::get('/nontraite', [QueueController::class, 'AppelNONTraites']);
     Route::post('/traiter-queue', [QueueController::class, 'traiterQueue']);
-    Route::get('/', [QueueController::class, 'index']);
+    Route::get('/numeroactuelle', [QueueController::class, 'numeroActuelle']);
     Route::get('/{queue}', [QueueController::class, 'show']);
     Route::post('/', [QueueController::class, 'store']);
     Route::put('/{queue}', [QueueController::class, 'update']);
     Route::delete('/{queue}', [QueueController::class, 'destroy']);
+});
 });
 
 // Routes pour UserController

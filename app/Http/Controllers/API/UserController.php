@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+
 class UserController extends Controller
 {
    /**
@@ -67,33 +69,65 @@ class UserController extends Controller
             return response()->json([
                 'name' => $user->name,
                 'email' => $user->email,
+                'username'=>$user->username,
+                'avatar'=>$user->avatar,
             ]);
         }
-        public function updateAuthenticatedUser(Request $request)
+        public function updateAuthenticatedUser(Request $request,$id)
         {
             $user = Auth::user();
     
-            $request->validate([
-                'name' => 'required|string|max:255',
+            $validatedData = $request->validate([
+                'username' => 'required|string|max:255',
                 'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
-                'password' => 'nullable|string|min:8|confirmed',
+                'password' => 'nullable|string|min:6|confirmed',
+                'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // Validate avatar
+
             ]);
     
-            $user->name = $request->input('name');
-            $user->email = $request->input('email');
+            /*$user->name = $request->input('name');
+            $user->email = $request->input('email');*/
+            $user = User::findOrFail($id);
+            $user->username = $validatedData['username'];
+            $user->email = $validatedData['email'];
     
-            if ($request->filled('password')) {
+         /*   if ($request->filled('password')) {
                 $user->password = Hash::make($request->input('password'));
+            }*/
+            if (!empty($validatedData['password'])) {
+                $user->password = Hash::make($validatedData['password']);
             }
+            if ($request->hasFile('avatar')) {
+
+                $avatar = $request->file('avatar');
+                $avatatName = time() . '.' . $avatar->getClientOriginalExtension();
+                $avatar->move(public_path('images'), $avatarName);
+                $user->$avatar = $avatarName;
+
+            }
+
+
+                // Delete the old avatar if it exists
+               /* if ($user->avatar) {
+                    Storage::delete('public/avatars/' . $user->avatar);
+               
+                
+                }
+                $file = $request->file('avatar');
+                $filename = time() . '_' . $file->getClientOriginalName();
+                $file->storeAs('public/avatars', $filename);
+                $user->avatar = $filename;
+            }*/
     
-            $user->save();
+             $user->save();
+            
     
-            return response()->json([
+           return response()->json([
                 'message' => 'User updated successfully',
                 'user' => $user
             ]);
-        }
-
+        
+    }
       /*  public function getUserDepartment(Request $request)
         {
             $user = Auth::user();
@@ -103,7 +137,7 @@ class UserController extends Controller
                 'department' => $department,
             ]);
         }*/
-        public function getUserDepartment(Request $request)
+    public function getUserDepartment(Request $request)
 {
     $user = Auth::user();
     $departmentName = $user->department ? $user->department->name : null;
